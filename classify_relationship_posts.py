@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pan
 from classify_util import *
+from feature_extractor import *
 
 def get_options():
     parser = OptionParser()
@@ -23,6 +24,14 @@ def read_csv_data(csv_file, maxrows = None):
         return pan.read_csv(csv_file, nrows = maxrows)
     return pan.read_csv(csv_file)
 
+def get_features_and_label_from_row(data_row):
+    return extract_title_features(row["title"]) + extract_post_features(row["selftext"]) + [row["is_romantic"]]
+
+def train_model(train_data, model_file):
+    training_events = train_data.apply(lambda row : get_features_and_label_from_row(row), axis = 1)
+
+
+
 if __name__ == '__main__':
     opts = get_options()
 
@@ -31,8 +40,8 @@ if __name__ == '__main__':
 
     # run training if training file given
     if opts.train:
-        data = read_csv_data(opts.train, 10)
-        print data
+        data = read_csv_data(opts.train)
+
 
     # output predictions on the test data if data was given
     if opts.eval:

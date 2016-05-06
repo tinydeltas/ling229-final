@@ -127,6 +127,24 @@ def window(seq, n=2):
         result = result[1:] + (elem,)
         yield result
 
+#def train(training_events, model_type, smoothing_parameter, verbose=False):
+#    training_events_file = tempfile.NamedTemporaryFile()
+#    for event in training_events:
+#        training_events_file.write(','.join(event) + "\n")
+#    training_events_file.flush()
+
+#def train_opennlp(training_filename, model_file, model_type, smoothing_parameter, verbose):
+#    # Used to hide verbose output from OpenNLP Maxent
+#    redirect_output_string = "" if verbose else ' > /dev/null 2> /dev/null '
+
+#    model_option = " -perceptron " if model_type == "pt" else ""
+
+#    # Train a model
+#    model_file = tempfile.NamedTemporaryFile(suffix="gz")
+#    os.system('classify train -cutoff 1 -maxit 1000 -sigma ' + str(smoothing_parameter) + ' ' \
+#              + model_option + training_filename + ' ' + model_file.name + redirect_output_string)
+
+
 def train_and_classify (training_events, eval_events, model_type, smoothing_parameter, verbose=False):
 
     training_events_file = tempfile.NamedTemporaryFile()
