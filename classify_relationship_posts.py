@@ -21,8 +21,8 @@ def get_options():
 
 def read_csv_data(csv_file, maxrows = None):
     if maxrows:
-        return pan.read_csv(csv_file, nrows = maxrows)
-    return pan.read_csv(csv_file)
+        return pan.read_csv(csv_file, nrows = maxrows, encoding='utf-8')
+    return pan.read_csv(csv_file, encoding='utf-8')
 
 def get_features_and_label_from_row(data_row):
     return extract_title_features(row["title"]) + extract_post_features(row["selftext"]) + [row["is_romantic"]]
