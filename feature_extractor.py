@@ -185,15 +185,14 @@ def get_topic_model_features(posttext):
     return get_normed_word_counts(top_topic_words, post_words)
 
 
-def extract_post_features(post):
-    print "Extracting post features"
-    post_text = post['selftext']
-    post = Post(post_text)
+def extract_post_features(post_text):
+    # print "Extracting post features"
+    post_obj = Post(post_text)
 
     features = np.array([])
-    features += np.array(post.get_all_features())
-    features += get_topic_model_features(post_text)
-    
+    # features = np.concatenate((features, post_obj.get_all_features()))
+    features = np.concatenate((features, get_topic_model_features(post_text)))
+
     return features
 
 
@@ -202,3 +201,10 @@ def extract_title_features(titletext):
     relationship = Relationship(titletext)
     print relationship
     return relationship.get_all_features()
+
+
+# Extracts all the features at once. This is the only function that should be exposed to the classifier,
+# unless testing the efficacy of differing feature sets.
+def extract_all_features(datarow):
+    return extract_post_features(datarow["selftext"])
+    # return np.concatenate((extract_post_features(datarow["selftext"]), extract_title_features(datarow["title"])))

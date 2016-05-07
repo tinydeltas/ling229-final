@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pan
 from classify_util import *
-from feature_extractor import *
+from feature_extractor import extract_all_features
 
 
 def get_options():
@@ -44,7 +44,9 @@ if __name__ == '__main__':
 
     # run training if training file given
     if opts.train:
-        data = read_csv_data(opts.train)
+        data = read_csv_data(opts.train, 10)
+        features = np.vstack([extract_all_features(row) for i, row in data.iterrows()])
+        # print features
 
     # output predictions on the test data if data was given
     if opts.eval:

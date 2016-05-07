@@ -78,7 +78,7 @@ def save_model_and_top_words(model, model_file, words_file, num_topics = 2):
 
 def get_top_words_in_topics(model_file = "topic_modeling/lda_train.model", ntopics = 2, nwords = 10):
     topic_model = load_model_from_file(model_file)
-    return [word for word, prob in topic_model.show_topics(ntopics, nwords)]
+    return [[word for word, prob in topic_model.show_topic(i, nwords)] for i in range(ntopics)]
 
 
 if __name__ == '__main__':
