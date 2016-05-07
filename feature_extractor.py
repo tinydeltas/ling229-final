@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-from classify_util import *
+import numpy as np
+from nltk import word_tokenize
+from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words
+from collections import Counter
 
 
 ###########################################################################
@@ -33,8 +36,26 @@ def extract_type(titletext):
     pass
 
 ###########################################################################
-def extract_post_features(posttext):
-    pass
+
+
+# Features from topic modeling
+def get_normed_word_counts(top_topic_words, post_words):
+    post_word_count = float(len(post_words))
+    matching_words = filter(lambda word: word in top_topic_words, post_words)
+    counts = Counter(matching_words)
+    return np.array([float(counts[word])/post_word_count for word in top_topic_words])
+
+
+def get_topic_model_features(posttext):
+    top_topic_words = []
+    for words in get_top_words_in_topics():
+        top_topic_words += words
+
+    post_words = stem_all_words(word_tokenize(posttext))
+
+    return get_normed_word_counts(top_topic_words, post_words)
+
+
 
 # Update: or Edit: in body of post
 def extract_edit(posttext):
@@ -49,3 +70,7 @@ def extract_tldr(posttest):
 # If gilded
 # Upvotes
 # Number of comments
+
+def extract_post_features(posttext):
+    features = get_topic_model_features(posttext)
+    return features
