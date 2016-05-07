@@ -3,7 +3,9 @@ import sys
 import pandas as pan
 
 if __name__ == '__main__':
-    data = pan.read_csv(sys.argv[1])
+    data = pan.read_csv(sys.argv[1], dtype = {"selftext" : unicode}, nrows=30000)
+
+    data = data.dropna(axis = 0)
 
     data_to_use = data.sample(10200)
 
