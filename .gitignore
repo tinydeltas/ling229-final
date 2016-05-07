@@ -1,2 +1,5 @@
 data/tagged_relationships_data.csv
 data/cleaned_tagged_relationships_data.csv
+.DS_Store
+.idea/
+data/.DS_Store
