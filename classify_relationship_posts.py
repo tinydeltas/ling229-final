@@ -2,8 +2,10 @@
 
 import numpy as np
 import pandas as pan
+import pickle
 from classify_util import *
-from feature_extractor import extract_all_features
+from feature_extractor import FeatureExtractor
+from sklearn.tree import DecisionTreeClassifier
 
 
 def get_options():
@@ -21,18 +23,63 @@ def get_options():
     return options
 
 
-def read_csv_data(csv_file, maxrows=None):
-    if maxrows:
-        return pan.read_csv(csv_file, nrows=maxrows, encoding='utf-8')
-    return pan.read_csv(csv_file, encoding='utf-8')
+class RelationshipPostClassifier:
+    def __init__(self):
+        self.data = None
+        self.classifier = None
+        self.featureExtractor = None
+        self.predictions = None
 
+    def read_csv_data(self, csv_file, maxrows=None):
 
-def get_features_and_label_from_row(row):
-    return extract_title_features(row["title"]) + extract_post_features(row["selftext"]) + [row["is_romantic"]]
+        sys.stderr.write("Reading in data from " + csv_file + "\n")
 
+        if maxrows:
+            self.data = pan.read_csv(csv_file, nrows=maxrows, encoding='utf-8')
+        else:
+            self.data = pan.read_csv(csv_file, encoding='utf-8')
 
-def train_model(train_data, model_file):
-    training_events = train_data.apply(lambda row: get_features_and_label_from_row(row), axis=1)
+    def train_model(self, model_out_file):
+        if self.data is None:
+            raise Exception("Trying to train model without any data.")
+
+        sys.stderr.write("Extracting features from data.\n")
+
+        self.featureExtractor = FeatureExtractor(self.data)
+        feature_matrix = self.featureExtractor.extract_full_feature_matrix()
+
+        labels = np.array([0 if lab == "Romantic" else 1 for lab in self.data["is_romantic"]])
+
+        sys.stderr.write("Training classifier.\n")
+
+        self.classifier = DecisionTreeClassifier()
+        self.classifier.fit(feature_matrix, labels)
+
+        sys.stderr.write("Saving classifier.\n")
+
+        with open(model_out_file, "w") as f:
+            pickle.dump(self.classifier, f)
+
+    def predict_model(self, model_file = None, output_file = None):
+        if not self.classifier:
+            if not model_file:
+                raise Exception("No model to predict with.")
+            else:
+                with open(model_file) as f:
+                    self.classifier = pickle.load(f)
+
+        if self.data is None:
+            raise Exception("Trying to predict using model with no data loaded.")
+
+        self.featureExtractor = FeatureExtractor(self.data)
+        feature_matrix = self.featureExtractor.extract_full_feature_matrix()
+
+        self.predictions = self.classifier.predict(feature_matrix)
+
+        if output_file:
+            np.savetxt(output_file, self.predictions, delimiter=",", fmt="%d")
+
+        return self.predictions
 
 
 # Main driver code
@@ -42,12 +89,17 @@ if __name__ == '__main__':
     if not opts.train and not opts.eval:
         raise Exception("Must supply either a training file or an evaluation file to the script.")
 
+    postClassifier = RelationshipPostClassifier()
+
     # run training if training file given
     if opts.train:
-        data = read_csv_data(opts.train, 10)
-        features = np.vstack([extract_all_features(row) for i, row in data.iterrows()])
-        # print features
+        postClassifier.read_csv_data(opts.train)
+        postClassifier.train_model(model_out_file=opts.modelfile)
 
     # output predictions on the test data if data was given
     if opts.eval:
-        pass
+        postClassifier.read_csv_data(opts.eval)
+        if opts.train:
+            postClassifier.predict_model(output_file="test_predictions.csv")
+        else:
+            postClassifier.predict_model(model_file=opts.modelfile, output_file="test_predictions.csv")

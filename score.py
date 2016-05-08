@@ -45,8 +45,8 @@ if options.predict != None:
 # Do the scoring.
 
 # Slurp in the labels from each file as lists
-gold = [x.strip().split(',')[-1] for x in gold_file.readlines()]
-predicted = [x.strip().split(' ')[0] for x in prediction_file.readlines()]
+predicted = [int(x.strip()) for x in prediction_file.readlines()]
+gold = [int(x.strip()) for x in gold_file.readlines()]
 
 if len(gold) != len(predicted):
     print "ERROR: Different number of gold and predicted labels!"

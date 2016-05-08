@@ -2,6 +2,7 @@
 
 import numpy as np
 import re
+import sys
 from nltk import word_tokenize
 from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words
 from collections import Counter
@@ -167,44 +168,60 @@ class Post:
 # Number of comments
 
 
-# Features from topic modeling
-def get_normed_word_counts(top_topic_words, post_words):
-    post_word_count = float(len(post_words))
-    matching_words = filter(lambda word: word in top_topic_words, post_words)
-    counts = Counter(matching_words)
-    return np.array([float(counts[word])/post_word_count for word in top_topic_words])
+class FeatureExtractor:
+    def __init__(self, data, topic_model_file="topic_modeling/lda_train.model"):
+        self.feature_matrix = None
+        self.data = data
+        self.topic_model_file = topic_model_file
 
+        self.topics_top_words = []
+        topics_top_words = get_top_words_in_topics(model_file=self.topic_model_file)
+        for words in topics_top_words:
+            self.topics_top_words += words
 
-def get_topic_model_features(posttext):
-    top_topic_words = []
-    for words in get_top_words_in_topics():
-        top_topic_words += words
+    # Features from topic modeling
+    @staticmethod
+    def get_normed_word_counts(top_topic_words, post_words):
+        post_word_count = float(len(post_words))
 
-    post_words = stem_all_words(word_tokenize(posttext))
+        if post_word_count == 0:
+            sys.stderr.write("Warning: empty post text.\n")
+            return np.zeros(len(top_topic_words))
 
-    return get_normed_word_counts(top_topic_words, post_words)
+        matching_words = filter(lambda word: word in top_topic_words, post_words)
+        counts = Counter(matching_words)
+        return np.array([float(counts[word])/post_word_count for word in top_topic_words])
 
+    def get_topic_model_features(self, posttext):
+        post_words = stem_all_words(word_tokenize(posttext))
 
-def extract_post_features(post_text):
-    # print "Extracting post features"
-    post_obj = Post(post_text)
+        # sys.stderr.write("Post length: " + str(len(post_words)) + "\n")
 
-    features = np.array([])
-    # features = np.concatenate((features, post_obj.get_all_features()))
-    features = np.concatenate((features, get_topic_model_features(post_text)))
+        return self.get_normed_word_counts(self.topics_top_words, post_words)
 
-    return features
+    def extract_post_features(self, post_text):
+        # print "Extracting post features"
+        post_obj = Post(post_text)
 
+        features = np.array([])
+        # features = np.concatenate((features, post_obj.get_all_features()))
+        features = np.concatenate((features, self.get_topic_model_features(post_text)))
 
-def extract_title_features(titletext):
-    print "Extracting title features"
-    relationship = Relationship(titletext)
-    print relationship
-    return relationship.get_all_features()
+        return features
 
+    def extract_title_features(self, titletext):
+        print "Extracting title features"
+        relationship = Relationship(titletext)
+        print relationship
+        return relationship.get_all_features()
 
-# Extracts all the features at once. This is the only function that should be exposed to the classifier,
-# unless testing the efficacy of differing feature sets.
-def extract_all_features(datarow):
-    return extract_post_features(datarow["selftext"])
-    # return np.concatenate((extract_post_features(datarow["selftext"]), extract_title_features(datarow["title"])))
+    def extract_all_features_from_row(self, datarow):
+        features = self.extract_post_features(datarow["selftext"])
+        return features
+        # return np.concatenate((extract_post_features(datarow["selftext"]), extract_title_features(datarow["title"])))
+
+    # Extracts all the features at once. This is the only function that should be used by the classifier,
+    # unless testing the efficacy of differing feature sets.
+    def extract_full_feature_matrix(self):
+        self.features = np.vstack([self.extract_all_features_from_row(row) for i, row in self.data.iterrows()])
+        return self.features

@@ -22,11 +22,12 @@ def add_pos_tags_to_english_docs(docs):
 
 if __name__ == '__main__':
     n = int(sys.argv[1])
-    english_filename = sys.argv[2]    
+    english_filename = sys.argv[2]
+    outfile_name = sys.argv[3]
     
     print("Reading data file.")
 
-    english_docs = list(pan.read_csv(english_filename, nrows = n, encoding='utf-8')["selftext"])
+    english_docs = list(pan.read_csv(english_filename, nrows=n, encoding='utf-8')["selftext"])
 
     english_docs = [english_docs[i].encode('utf-8') for i in range(len(english_docs))]
 
@@ -34,5 +35,5 @@ if __name__ == '__main__':
 
     english_sents_tagged = add_pos_tags_to_english_docs(english_docs)
 
-    with open("data/posts_tagged" + str(n), "w") as outfile:
+    with open(outfile_name + str(n), "w") as outfile:
         pickle.dump(english_sents_tagged, outfile)
