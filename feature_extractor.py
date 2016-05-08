@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
-import numpy as np
+import math
 import re
 import sys
-import math
-from nltk import word_tokenize
-from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words
 from collections import Counter
+
+import numpy as np
+from nltk import word_tokenize
+
+from classify_util import window
+from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words
 
 
 ###########################################################################
@@ -145,7 +148,7 @@ class Duration:
         features.append(self.over_a_year())
         features.append(self.over_a_month())
         features.append(self.extract_length())
-        print features
+
         return features
 
 
@@ -172,7 +175,6 @@ class Post:
         pass
 
         # num upvotes
-
     def extract_upvotes(self):
         pass
 
@@ -189,21 +191,29 @@ class Post:
                     self.extract_comments()]
         return features
 
-# Time created
-# If gilded
-# Upvotes
-# Number of comments
-
-
 class FeatureExtractor:
     def __init__(self, data, topic_words_file="topic_modeling/topic_top_words.txt"):
         self.feature_matrix = None
         self.data = data
         self.topic_words_file = topic_words_file
 
+        with open("wordnet-lexicon/romantic_words", 'rb') as f:
+            romantic_words = [w.strip('\n') for w in f.readlines()]
+        with open("wordnet-lexicon/nonromantic_words", 'rb') as f:
+            nonromantic_words = [w.strip('\n') for w in f.readlines()]
+
+        self.lexicon = romantic_words + nonromantic_words
         self.topics_top_words = []
         self.topics_top_words = get_top_words_in_topics(model_file=None, text_file=self.topic_words_file)
 
+
+    def get_lexicon_features(self, post_text):
+        tokenized = word_tokenize(post_text)
+        bigrams = window(tokenized, 2)
+        bigrams = ['_'.join(b) for b in bigrams]
+        trigrams = window(tokenized, 3)
+        trigrams = ['_'.join(t) for t in trigrams]
+        return self.get_normed_word_counts(self.lexicon, tokenized + bigrams + trigrams)
 
     # Features from topic modeling
     @staticmethod
@@ -232,6 +242,7 @@ class FeatureExtractor:
         features = np.array([])
         # features = np.concatenate((features, post_obj.get_all_features()))
         features = np.concatenate((features, self.get_topic_model_features(post_text)))
+        features = np.concatenate((features, self.get_lexicon_features(post_text)))
 
         return features
 
