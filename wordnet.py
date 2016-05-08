@@ -1,17 +1,19 @@
 from nltk.corpus import wordnet as wn
 
-romantic_words = {'relationship', 'love', 'sex', 'cheating', 'dating', 'crush',
-                  'boyfriend', 'girlfriend', 'husband', 'wife', 'SO',
-                  'fiance', 'fiancee', 'partner', 'ex', 'bf', 'gf'
-                                                              'dumped', 'married', 'wedding', 'infidelity', 'breakup',
-                  'date', 'our'}
+romantic_words = {'relationship', 'romantic, ''love', 'sex', 'cheating', 'dating', 'crush',
+                  'boyfriend', 'girlfriend', 'husband', 'wife', 'monogamous', 'serious',
+                  'fiance', 'fiancee', 'partner', 'ex', 'bf', 'gf', 'snoop',
+                  'dumped', 'married', 'wedding', 'infidelity', 'breakup', 'broke_up',
+                  'date', 'our', 'attraction', 'attracted', 'over_her', 'over_him'}
 
 nonromantic_words = {'boss', 'manager', 'co-worker', 'colleague', 'teacher',
-                     'work', 'job', 'jobs', 'applied', 'company',
-                     'friend', 'cousin', 'aunt', 'uncle',
+                     'work', 'job', 'jobs', 'applied', 'company', 'school',
+                     'friend', 'cousin', 'aunt', 'uncle', 'college', 'property',
                      'niece', 'nephew', 'son', 'daughter', 'kid', 'child',
                      'parents', 'mom', 'mother', 'dad', 'father', 'grandparents',
-                     'neighbors', 'gift'}
+                     'neighbor', 'gift', 'roommate', 'roommates', 'acquaintance',
+                     'best_friend', 'close_friend', 'best_mate', 'bromance',
+                     'close', 'neighborhood', 'platonic', 'friendly', 'dysfunctional'}
 
 
 def find_xnonyms(set_list):
@@ -20,9 +22,8 @@ def find_xnonyms(set_list):
         syns = wn.synsets(word)
         for syn in syns:
             for l in syn.lemmas():
-                expansion.add(l.name())
+                expansion.add(l.name().lower())
     return expansion
-
 
 romantic_words |= find_xnonyms(romantic_words)
 print 'romantic: ', romantic_words

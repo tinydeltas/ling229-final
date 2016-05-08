@@ -1,16 +1,17 @@
 #!/usr/bin/python
 
 import math
+import pickle
 import re
 import sys
 from collections import Counter
 
 import numpy as np
 from nltk import word_tokenize
+from nltk.stem.porter import PorterStemmer
 
-from classify_util import window
-from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words
 
+# from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words
 
 ###########################################################################
 class Relationship:
@@ -157,8 +158,23 @@ class Post:
     edit_regex = "\b(EDIT|edit)\b\n"
     tldr_regex = "(\*\*)?\b(tl;dr|TLDR|TL;DR)\b(\*\*)?"
 
-    def __init__(self, posttext):
-        self.text = posttext
+    def __init__(self, row):
+        self.text = row['selftext']
+        self.gilded = row['gilded']
+        self.upvotes = row['score']
+        self.comments = row['num_comments']
+
+    # if gilded
+    def extract_gilded(self):
+        return self.gilded
+
+        # num upvotes
+    def extract_upvotes(self):
+        return self.upvotes
+
+        # num comments
+    def extract_comments(self):
+        return self.comments
 
     # Update: or Edit: in body of post
     def extract_edit(self):
@@ -167,26 +183,11 @@ class Post:
 
     # Tldr words
     def extract_tldr(self):
-        res = re.search(self.tldr_regex, self.test)
+        res = re.search(self.tldr_regex, self.text)
         return res
 
-    # if gilded
-    def extract_gilded(self):
-        pass
-
-        # num upvotes
-    def extract_upvotes(self):
-        pass
-
-        # num comments
-
-    def extract_comments(self):
-        pass
-
     def get_all_features(self):
-        features = [self.extract_tldr(),
-                    self.extract_edit(),
-                    self.extract_gilded(),
+        features = [self.extract_gilded(),
                     self.extract_upvotes(),
                     self.extract_comments()]
         return features
@@ -208,17 +209,20 @@ class FeatureExtractor:
 
 
     def get_lexicon_features(self, post_text):
+        if post_text == None:
+            return np.array([])
         tokenized = word_tokenize(post_text)
-        bigrams = window(tokenized, 2)
-        bigrams = ['_'.join(b) for b in bigrams]
-        trigrams = window(tokenized, 3)
-        trigrams = ['_'.join(t) for t in trigrams]
-        return self.get_normed_word_counts(self.lexicon, tokenized + bigrams + trigrams)
+        # bigrams = window(tokenized, 2)
+        # bigrams = ['_'.join(b) for b in bigrams]
+        # trigrams = window(tokenized, 3)
+        # trigrams = ['_'.join(t) for t in trigrams]
+        return self.get_normed_word_counts(self.lexicon, tokenized)
 
     # Features from topic modeling
     @staticmethod
     def get_normed_word_counts(top_topic_words, post_words):
         post_word_count = float(len(post_words))
+        post_words = [p.lower() for p in post_words]
 
         if post_word_count == 0:
             sys.stderr.write("Warning: empty post text.\n")
@@ -235,27 +239,32 @@ class FeatureExtractor:
 
         return self.get_normed_word_counts(self.topics_top_words, post_words)
 
-    def extract_post_features(self, post_text):
+    def extract_post_features(self, post):
         # print "Extracting post features"
-        post_obj = Post(post_text)
+        post_obj = Post(post)
 
         features = np.array([])
+        post_text = post["selftext"]
         # features = np.concatenate((features, post_obj.get_all_features()))
         features = np.concatenate((features, self.get_topic_model_features(post_text)))
         features = np.concatenate((features, self.get_lexicon_features(post_text)))
-
+        features = np.concatenate((features, self.get_lexicon_features(post_obj.extract_tldr())))
+        features = np.concatenate((features, self.get_lexicon_features(post_obj.extract_edit())))  # weigh these more?
         return features
 
     def extract_title_features(self, titletext):
         # print "Extracting title features"
         relationship = Relationship(titletext)
         # print relationship
-        return np.array(relationship.get_all_features())
+        features = np.array([])
+        features = np.concatenate((features, relationship.get_all_features()))
+        features = np.concatenate((features, self.get_lexicon_features(titletext)))
+        return features
 
     def extract_all_features_from_row(self, datarow):
         # features = self.extract_post_features(datarow["selftext"])
         # return features
-        return np.concatenate((self.extract_post_features(datarow["selftext"]), self.extract_title_features(datarow["title"])))
+        return np.concatenate((self.extract_post_features(datarow), self.extract_title_features(datarow["title"])))
 
     def mean_normalize_all_features(self):
         if self.feature_matrix is None:
@@ -276,3 +285,41 @@ class FeatureExtractor:
         self.features = np.vstack([self.extract_all_features_from_row(row) for i, row in self.data.iterrows()])
         self.mean_normalize_all_features()
         return self.features
+
+
+def write_top_words_to_file(lda_model, num_topics, filename):
+    with open(filename, "w") as f:
+        for i in range(num_topics):
+            for word, prob in lda_model.show_topic(i, 20):
+                f.write(word + " ")
+                f.write("\n")
+        f.flush()
+
+
+def load_model_from_file(filename):
+    with open(filename) as f:
+        return pickle.load(f)
+
+
+def save_model_and_top_words(model, model_file, words_file, num_topics=2):
+    with open(model_file, "w") as f:
+        pickle.dump(model, f)
+
+    write_top_words_to_file(topic_model, num_topics, words_file)
+
+
+def stem_all_words(words):
+    p_stemmer = PorterStemmer()
+    return [p_stemmer.stem(word) for word in words]
+
+
+def get_top_words_in_topics(model_file="topic_modeling/lda_train.model", text_file="topic_modeling/topic_top_words.txt",
+                            ntopics=2, nwords=20):
+    if not (model_file is None):
+        topic_model = load_model_from_file(model_file)
+        return [[word for word, prob in topic_model.show_topic(i, nwords)] for i in range(ntopics)]
+    elif not (text_file is None):
+        with open(text_file) as f:
+            return [word.strip() for word in f.readlines()]
+    else:
+        raise Exception('No model file or text file provided for getting topic words.')
