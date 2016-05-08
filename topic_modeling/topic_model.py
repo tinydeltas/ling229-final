@@ -54,13 +54,9 @@ def train_lda_model(postag_file, topics = 2):
 def write_top_words_to_file(lda_model, num_topics, filename):
     with open(filename, "w") as f:
         for i in range(num_topics):
-            f.write("Topic " + str(i) + "\n")
             for word, prob in lda_model.show_topic(i, 20):
-                print(word)
                 f.write(word + " ")
-                f.write(str(prob))
                 f.write("\n")
-            f.write("\n")
         f.flush()
 
 
@@ -76,9 +72,15 @@ def save_model_and_top_words(model, model_file, words_file, num_topics = 2):
     write_top_words_to_file(topic_model, num_topics, words_file)
 
 
-def get_top_words_in_topics(model_file = "topic_modeling/lda_train.model", ntopics = 2, nwords = 20):
-    topic_model = load_model_from_file(model_file)
-    return [[word for word, prob in topic_model.show_topic(i, nwords)] for i in range(ntopics)]
+def get_top_words_in_topics(model_file="topic_modeling/lda_train.model", text_file="topic_modeling/topic_top_words.txt", ntopics = 2, nwords = 20):
+    if not (model_file is None):
+        topic_model = load_model_from_file(model_file)
+        return [[word for word, prob in topic_model.show_topic(i, nwords)] for i in range(ntopics)]
+    elif not (text_file is None):
+        with open(text_file) as f:
+            return [word.strip() for word in f.readlines()]
+    else:
+        raise Exception('No model file or text file provided for getting topic words.')
 
 
 if __name__ == '__main__':

@@ -196,15 +196,14 @@ class Post:
 
 
 class FeatureExtractor:
-    def __init__(self, data, topic_model_file="topic_modeling/lda_train.model"):
+    def __init__(self, data, topic_words_file="topic_modeling/topic_top_words.txt"):
         self.feature_matrix = None
         self.data = data
-        self.topic_model_file = topic_model_file
+        self.topic_words_file = topic_words_file
 
         self.topics_top_words = []
-        topics_top_words = get_top_words_in_topics(model_file=self.topic_model_file)
-        for words in topics_top_words:
-            self.topics_top_words += words
+        self.topics_top_words = get_top_words_in_topics(model_file=None, text_file=self.topic_words_file)
+
 
     # Features from topic modeling
     @staticmethod
