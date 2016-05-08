@@ -207,6 +207,7 @@ class FeatureExtractor:
         self.topics_top_words = get_top_words_in_topics(model_file=None, text_file=self.topic_words_file)
 
 
+    # TODO: Add lexicon ratio feature
     def get_lexicon_features(self, post_text):
         tokenized = word_tokenize(post_text)
         bigrams = window(tokenized, 2)
@@ -228,6 +229,7 @@ class FeatureExtractor:
         counts = Counter(matching_words)
         return np.array([float(counts[word])/post_word_count for word in top_topic_words])
 
+    # TODO: Add topic likelihood feature (by running topic model on input data)
     def get_topic_model_features(self, posttext):
         post_words = stem_all_words(word_tokenize(posttext))
 

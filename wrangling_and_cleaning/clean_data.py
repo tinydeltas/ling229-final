@@ -5,6 +5,7 @@ import pandas as pan
 romantic_tags = ["Romantic", "Relationships", "Breakups", "Dating", "Infidelity"]
 nonromantic_tags = ["Non-Romantic", "Personal Issues"]
 
+
 def romance_tag(tag):
     if tag in romantic_tags:
         return "Romantic"
@@ -12,6 +13,7 @@ def romance_tag(tag):
         return "NonRomantic"
     else:
         return "Update"
+
 
 if __name__ == '__main__':
     data = pan.read_csv(sys.argv[1])
