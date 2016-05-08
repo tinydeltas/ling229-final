@@ -192,10 +192,10 @@ class Post:
         return features
 
 class FeatureExtractor:
-    def __init__(self, data, topic_model_file="topic_modeling/lda_train.model"):
+    def __init__(self, data, topic_words_file="topic_modeling/topic_top_words.txt"):
         self.feature_matrix = None
         self.data = data
-        self.topic_model_file = topic_model_file
+        self.topic_words_file = topic_words_file
 
         with open("wordnet-lexicon/romantic_words", 'rb') as f:
             romantic_words = [w.strip('\n') for w in f.readlines()]
@@ -204,9 +204,8 @@ class FeatureExtractor:
 
         self.lexicon = romantic_words + nonromantic_words
         self.topics_top_words = []
-        topics_top_words = get_top_words_in_topics(model_file=self.topic_model_file)
-        for words in topics_top_words:
-            self.topics_top_words += words
+        self.topics_top_words = get_top_words_in_topics(model_file=None, text_file=self.topic_words_file)
+
 
     def get_lexicon_features(self, post_text):
         tokenized = word_tokenize(post_text)
