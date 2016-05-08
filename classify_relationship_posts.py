@@ -16,6 +16,8 @@ def get_options():
                       help="existing model file location")
     parser.add_option("-e", "--eval", dest="eval", default=None,
                       help="test data file", metavar="FILE")
+    parser.add_option("-o", "--outfile", dest="outfile", default="predictions/test_predictions.csv",
+                      help="prediction output file", metavar="FILE")
 
     (options, args) = parser.parse_args()
     check_mandatory_options(parser, options, ["modelfile"])
@@ -100,6 +102,6 @@ if __name__ == '__main__':
     if opts.eval:
         postClassifier.read_csv_data(opts.eval)
         if opts.train:
-            postClassifier.predict_model(output_file="test_predictions.csv")
+            postClassifier.predict_model(output_file=opts.outfile)
         else:
-            postClassifier.predict_model(model_file=opts.modelfile, output_file="test_predictions.csv")
+            postClassifier.predict_model(model_file=opts.modelfile, output_file=opts.outfile)

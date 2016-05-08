@@ -3,6 +3,7 @@
 import numpy as np
 import re
 import sys
+import math
 from nltk import word_tokenize
 from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words
 from collections import Counter
@@ -19,10 +20,11 @@ class Relationship:
 
     # Number, gender of people can be obtained from title
     def extract_people(self, titletext):
-        res = re.search(self.people_regex, titletext)
+        res = re.findall(self.people_regex, titletext)
         people = []
         for p in res:
-            people.append(Person(p))
+            if not (p is None):
+                people.append(Person(p[0]))
         return people
 
     # Duration of relationship obtained from title
@@ -30,7 +32,11 @@ class Relationship:
     # 2. Boolean, < or > 6 months
     def extract_duration(self, titletext):
         res = re.search(self.duration_regex, titletext)
-        return Duration(res)
+        if res is None:
+            return None
+        else:
+            # print res.group(3)
+            return Duration(res.group(3))
 
     # 1. Number of people
     def extract_num_people(self):
@@ -54,6 +60,13 @@ class Relationship:
         return (person1.gender == 'F' and person2.gender == 'M') or \
                (person1.gender == 'M' and person2.gender == 'F')
 
+    def age_difference(self):
+        if len(self.people) != 2:
+            return 100
+        else:
+            person1, person2 = self.people
+            return abs(person1.age - person2.age)
+
     # 5?. Boolean occurrence of: girlfriend, boyfriend, wife,
     # husband, mother, father, sister, brother, uncle, aunt
 
@@ -62,11 +75,12 @@ class Relationship:
         features.append(self.extract_num_people())
         features.append(self.extract_num_fem())
         features.append(self.extract_num_male())
-        features.append(self.extract_hetero())
+        features.append(int(self.extract_hetero()))
+        features.append(self.age_difference())
 
-        features += self.duration.get_all_features()
-        for p in self.people:
-            features += p.get_all_features()
+        # features += self.duration.get_all_features()
+        # for p in self.people:
+        #     features += p.get_all_features()
         return features
 
 
@@ -76,8 +90,21 @@ class Person:
         self.gender = None
         self.age = None
         self.preprocess(text)
+
+        if "m" in text.lower():
+            self.gender = "M"
+        else:
+            self.gender = "F"
+
+        age_match = re.search(r"\d+", text)
+        if age_match is None:
+            raise Exception("Could not parse age for person.")
+
+        self.age = int(age_match.group(0))
+        # print self.age
+
         assert self.gender == 'F' or self.gender == 'M'
-        assert self.age > 0 and self.age < 100
+        # assert self.age > 0 and self.age < 100
 
     def preprocess(self, text):
         pass
@@ -210,18 +237,32 @@ class FeatureExtractor:
         return features
 
     def extract_title_features(self, titletext):
-        print "Extracting title features"
+        # print "Extracting title features"
         relationship = Relationship(titletext)
-        print relationship
-        return relationship.get_all_features()
+        # print relationship
+        return np.array(relationship.get_all_features())
 
     def extract_all_features_from_row(self, datarow):
-        features = self.extract_post_features(datarow["selftext"])
-        return features
-        # return np.concatenate((extract_post_features(datarow["selftext"]), extract_title_features(datarow["title"])))
+        # features = self.extract_post_features(datarow["selftext"])
+        # return features
+        return np.concatenate((self.extract_post_features(datarow["selftext"]), self.extract_title_features(datarow["title"])))
+
+    def mean_normalize_all_features(self):
+        if self.feature_matrix is None:
+            return
+
+        for col_label in self.feature_matrix:
+            column = self.feature_matrix[col_label]
+            if np.max(column) == 1 and np.min(column) == 0:
+                continue
+            else:
+                avg = np.mean(column)
+                stdev = math.sqrt(np.var(column))
+                self.feature_matrix[col_label].apply(lambda x: (x - avg)/stdev)
 
     # Extracts all the features at once. This is the only function that should be used by the classifier,
     # unless testing the efficacy of differing feature sets.
     def extract_full_feature_matrix(self):
         self.features = np.vstack([self.extract_all_features_from_row(row) for i, row in self.data.iterrows()])
+        self.mean_normalize_all_features()
         return self.features
