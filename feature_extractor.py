@@ -4,6 +4,7 @@ import re
 import sys
 import math
 import numpy as np
+import pandas as pan
 from nltk import word_tokenize
 from collections import Counter
 from topic_modeling.topic_model import get_top_words_in_topics, stem_all_words, load_model_from_file
@@ -312,4 +313,15 @@ class FeatureExtractor:
     def extract_full_feature_matrix(self):
         self.feature_matrix = np.vstack([self.extract_all_features_from_row(row) for i, row in self.data.iterrows()])
         # self.mean_normalize_all_features()
-        return self.features
+        return self.feature_matrix
+
+
+# When run as a script, extract and save features
+if __name__ == '__main__':
+    data_file = sys.argv[1]
+    out_file = sys.argv[2]
+
+    data = pan.read_csv(data_file, encoding='utf-8')
+    extractor = FeatureExtractor(data)
+    feat_matrix = extractor.extract_full_feature_matrix()
+    np.savetxt(out_file, feat_matrix, delimiter=",")

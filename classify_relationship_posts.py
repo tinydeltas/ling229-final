@@ -6,6 +6,7 @@ import pickle
 from classify_util import *
 from feature_extractor import FeatureExtractor
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
 
 
 def get_options():
@@ -16,8 +17,12 @@ def get_options():
                       help="existing model file location")
     parser.add_option("-e", "--eval", dest="eval", default=None,
                       help="test data file", metavar="FILE")
-    parser.add_option("-o", "--outfile", dest="outfile", default="predictions/test_predictions.csv",
+    parser.add_option("-o", "--outfile", dest="outfile", default="predictions/dev_predictions.csv",
                       help="prediction output file", metavar="FILE")
+    parser.add_option("-p", "--probfile", dest="probfile", default="predictions/prediction_probs.csv",
+                      help="prediction output file (class probability)", metavar="FILE")
+    parser.add_option("-c", "--classifiertype", dest="classifiertype", default="tree",
+                      help="prediction output file (class probability)", metavar="FILE")
 
     (options, args) = parser.parse_args()
     check_mandatory_options(parser, options, ["modelfile"])
@@ -26,8 +31,9 @@ def get_options():
 
 
 class RelationshipPostClassifier:
-    def __init__(self):
+    def __init__(self, classifier_type="tree"):
         self.data = None
+        self.classifier_type = classifier_type
         self.classifier = None
         self.featureExtractor = None
         self.predictions = None
@@ -54,7 +60,7 @@ class RelationshipPostClassifier:
 
         sys.stderr.write("Training classifier.\n")
 
-        self.classifier = DecisionTreeClassifier()
+        self.classifier = LogisticRegression() if self.classifier_type == "logit" else DecisionTreeClassifier()
         self.classifier.fit(feature_matrix, labels)
 
         sys.stderr.write("Saving classifier.\n")
@@ -62,7 +68,7 @@ class RelationshipPostClassifier:
         with open(model_out_file, "w") as f:
             pickle.dump(self.classifier, f)
 
-    def predict_model(self, model_file = None, output_file = None):
+    def predict_model(self, model_file=None, output_file=None, output_probability_file=None):
         if not self.classifier:
             if not model_file:
                 raise Exception("No model to predict with.")
@@ -78,8 +84,12 @@ class RelationshipPostClassifier:
 
         self.predictions = self.classifier.predict(feature_matrix)
 
-        if output_file:
+        if output_file is not None:
             np.savetxt(output_file, self.predictions, delimiter=",", fmt="%d")
+
+        if output_probability_file is not None:
+            pred_probs = self.classifier.predict_proba(feature_matrix)
+            np.savetxt(output_probability_file, pred_probs, delimiter=",", fmt="%.3f")
 
         return self.predictions
 
@@ -91,7 +101,7 @@ if __name__ == '__main__':
     if not opts.train and not opts.eval:
         raise Exception("Must supply either a training file or an evaluation file to the script.")
 
-    postClassifier = RelationshipPostClassifier()
+    postClassifier = RelationshipPostClassifier(classifier_type=opts.classifiertype)
 
     # run training if training file given
     if opts.train:
@@ -102,6 +112,7 @@ if __name__ == '__main__':
     if opts.eval:
         postClassifier.read_csv_data(opts.eval)
         if opts.train:
-            postClassifier.predict_model(output_file=opts.outfile)
+            postClassifier.predict_model(output_file=opts.outfile, output_probability_file=opts.probfile)
         else:
-            postClassifier.predict_model(model_file=opts.modelfile, output_file=opts.outfile)
+            postClassifier.predict_model(model_file=opts.modelfile, output_file=opts.outfile,
+                                         output_probability_file=opts.probfile)

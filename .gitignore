@@ -1,5 +1,9 @@
 data/tagged_relationships_data.csv
 data/cleaned_tagged_relationships_data.csv
+data/train_features.csv
+data/dev_features.csv
 .DS_Store
 .idea/
 data/.DS_Store
+metrics/figs/
+metrics/word_counts/
