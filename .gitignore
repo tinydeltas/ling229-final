@@ -2,6 +2,7 @@ data/tagged_relationships_data.csv
 data/cleaned_tagged_relationships_data.csv
 data/train_features.csv
 data/dev_features.csv
+*.pyc
 .DS_Store
 .idea/
 data/.DS_Store
