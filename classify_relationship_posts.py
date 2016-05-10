@@ -1,5 +1,14 @@
 ﻿#!/usr/bin/python
 
+"""
+MAIN DRIVER CODE FOR CLASSIFICATION
+This class does the main classification and prediction task.
+Usage:
+classify_relationships_posts.csv -m [modelfile] -t [training file csv] -e [test file csv] -o [prediction output file]
+Advanced options:
+-p [probability prediction output file] -c [classifer type ("tree" or "logit")]
+"""
+
 import numpy as np
 import pandas as pan
 import pickle
@@ -10,6 +19,10 @@ from sklearn.linear_model import LogisticRegression
 
 
 def get_options():
+    """
+    Gets the options for the script/
+    :return: OptionParser.parse_args() options return value (dict of opts)
+    """
     parser = OptionParser()
     parser.add_option("-t", "--train", dest="train", default=None,
                       help="training data file", metavar="FILE")
@@ -31,6 +44,10 @@ def get_options():
 
 
 class RelationshipPostClassifier:
+    """
+    Main class for classification and prediction
+    """
+
     def __init__(self, classifier_type="tree"):
         self.data = None
         self.classifier_type = classifier_type
@@ -39,7 +56,13 @@ class RelationshipPostClassifier:
         self.predictions = None
 
     def read_csv_data(self, csv_file, maxrows=None):
-
+        """
+        Read in data from given csv_file into self.data (pandas dataframe)
+        maxrows limits number of read rows.
+        :param csv_file:
+        :param maxrows:
+        :return: None
+        """
         sys.stderr.write("Reading in data from " + csv_file + "\n")
 
         if maxrows:
@@ -48,6 +71,11 @@ class RelationshipPostClassifier:
             self.data = pan.read_csv(csv_file, encoding='utf-8')
 
     def train_model(self, model_out_file):
+        """
+        Extract the features from self.data and train the classifier. Output pickled model to model_out_file
+        :param model_out_file:
+        :return: None
+        """
         if self.data is None:
             raise Exception("Trying to train model without any data.")
 
@@ -69,6 +97,13 @@ class RelationshipPostClassifier:
             pickle.dump(self.classifier, f)
 
     def predict_model(self, model_file=None, output_file=None, output_probability_file=None):
+        """
+        Predict classes on self.data and output to output_file
+        :param model_file: Model file to read model in from. Otherwise looks for self.classifier
+        :param output_file: File to save predictions in
+        :param output_probability_file: File to save predicted probabilities in
+        :return: predicted classes (array)
+        """
         if not self.classifier:
             if not model_file:
                 raise Exception("No model to predict with.")
